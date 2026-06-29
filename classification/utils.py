@@ -5,7 +5,7 @@ import hashlib
 import time
 import torch
 import torch.distributed as dist
-from torchvision.datasets import CIFAR10, ImageFolder
+from torchvision.datasets import CIFAR10, ImageFolder, CIFAR100
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
 
@@ -129,6 +129,25 @@ def evaluate_cifar10(model, data, device='cuda'):
         100 * correct / total))
     return 100 * correct / total
     
+def evaluate_cifar100(model, data, device='cuda'):
+      
+    correct = 0
+    total = 0  
+    model.eval()
+    
+    start_time = timeit.default_timer()
+    with torch.no_grad():
+        for iteraction, (images, labels) in tqdm(enumerate(data), total=len(data)):
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    print(timeit.default_timer() - start_time)
+    print('Accuracy of the network on the 10000 test images: %.4f %%' % (
+        100 * correct / total))
+    return 100 * correct / total
+
 def cifar10_data_loader (data_path, batch_size=128):
     """
     This function takes path of cifar10 dataset and returns the test data and a calib data (10% of train data)
@@ -170,6 +189,47 @@ def cifar10_data_loader (data_path, batch_size=128):
         
     return test_dataloader, calib_dataloader
 
+def cifar100_data_loader (data_path, batch_size=128):
+    """
+    This function takes path of cifar100 dataset and returns the test data and a calib data (10% of train data)
+    """
+    
+    mean = (0.5071, 0.4867, 0.4408)
+    std = (0.2675, 0.2565, 0.2761)
+
+    transform = T.Compose(
+        [
+            T.Resize((224,224)),
+            T.ToTensor(),
+            T.Normalize(mean, std),
+        ]
+    )
+
+    test_dataset = CIFAR100(root=data_path, train=False, download=True, transform=transform)
+    train_dataset = CIFAR100(root=data_path, train=True, download=True, transform=transform)
+
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        num_workers=8,
+        shuffle=False,
+        drop_last=True,
+        pin_memory=True,
+    )
+    
+    #sample 10% of train data to create calib dataset
+    evens = list(range(0, len(train_dataset), 10))
+    calib_dataset = torch.utils.data.Subset(train_dataset, evens)
+    calib_dataloader = DataLoader(
+        calib_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=8,
+        drop_last=True,
+        pin_memory=True,
+    )
+        
+    return test_dataloader, calib_dataloader
 
 def imagenet_data_loader (data_path, batch_size=128):
     

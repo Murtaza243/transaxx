@@ -14,11 +14,11 @@ COPY pytorch-quantization /workspace/pytorch-quantization/
 COPY docker/banner.sh /etc/banner.sh
 
 # Install any additional dependencies specified in requirements.txt
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
+RUN pip install --upgrade "pip<24.0" && \
+    pip install --no-cache-dir scipy==1.11.1 -r requirements.txt && \
     cd pytorch-quantization/ && \
     python setup.py install && \
-    apt-get install -y curl && cd ../ && \
+    apt-get update && apt-get install -y curl && cd ../ && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/
 

@@ -17,6 +17,7 @@ docker run \
     -e USER=$user -e UID=$uid -e GID=$gid \
     -v $HERE:/workspace/ \
     -w /workspace/ \
+    --shm-size=8g \
     -it \
     --gpus '"device=0"' \
     --rm \
